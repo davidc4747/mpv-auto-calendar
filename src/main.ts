@@ -1,4 +1,6 @@
+import { curl } from "./commands";
 import "./mpv";
+
 /* ======================== *\
     #Pause/Play Event
 \* ======================== */
@@ -29,21 +31,76 @@ mp.observe_property(
 mp.register_event("shutdown", endTimer);
 
 function endTimer() {
-    mp.osd_message("Saving calendar event", 1);
-
     // send Google Calendar Request
-    // createCalendarEvent(
-    //     TOKEN,
-    //     CALENDAR_ID,
-    //     "Spanish Anime",
-    //     startTime,
-    //     endTime
-    // );
+    if (startTime && endTime) {
+        const { calendar_id } = readCredentialsFile();
+        const { access_token, refresh_token } = readTokenFile();
+
+        createCalendarEvent(
+            access_token,
+            calendar_id,
+            "Spanish Anime",
+            startTime,
+            endTime
+        );
+        mp.osd_message("Saving calendar event", 1);
+    }
 
     // Reset timers
     startTime = null;
     endTime = null;
 }
+
+/* ======================== *\
+    #Refresh Token
+\* ======================== */
+
+type TokenFile = {
+    access_token: string;
+    expires_in: number;
+    refresh_token: string;
+    scope: string;
+    token_type: "Bearer";
+};
+
+function readTokenFile(): TokenFile {
+    const dirname = mp.get_script_directory();
+    const filename = mp.utils.join_path(dirname, "data/token.json");
+    const text = mp.utils.read_file(filename);
+    return JSON.parse(text) as TokenFile;
+}
+
+type CredentialsFile = {
+    client_id: string;
+    client_secret: string;
+    calendar_id: string;
+};
+
+function readCredentialsFile(): CredentialsFile {
+    const dirname = mp.get_script_directory();
+    const filename = mp.utils.join_path(dirname, "data/credentials.json");
+    const text = mp.utils.read_file(filename);
+    return JSON.parse(text) as CredentialsFile;
+}
+
+// async function refreshToken(refresh_token) {
+//     const params = {
+//         client_id: CLIENT_ID,
+//         client_secret: CLIENT_SECRET,
+//         grant_type: "refresh_token",
+//         refresh_token,
+//     };
+
+//     const endpoint =
+//         "https://oauth2.googleapis.com/token?" +
+//         Object.entries(params)
+//             .map(([key, value]) => `${key}=${value}`)
+//             .join("&");
+
+//     const res = await fetch(endpoint, { method: "POST" });
+//     const credentials = await res.json();
+//     return credentials;
+// }
 
 /* ======================== *\
     #Calendar API Calls
@@ -56,32 +113,21 @@ function createCalendarEvent(
     start: Date,
     end: Date
 ) {
-    var body = JSON.stringify({
-        summary: summary,
-        start: { dateTime: start.toISOString() },
-        end: { dateTime: end.toISOString() },
-    });
-    var endpoint =
+    curl(
         "https://www.googleapis.com/calendar/v3/calendars/" +
-        calendarID +
-        "/events";
-    var args = [
-        "curl",
-        "-X",
-        "POST",
-        "--location",
-        endpoint,
-        "--header",
-        "Content-Type: text/plain",
-        "--header",
-        "Authorization: Bearer " + accessToken,
-        "--data",
-        body,
-    ];
-    mp.command_native({
-        name: "subprocess",
-        playback_only: false,
-        capture_stdout: true,
-        args: args,
-    });
+            calendarID +
+            "/events",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain",
+                Authorization: `Bearer ${accessToken}`,
+            },
+            body: {
+                summary: summary,
+                start: { dateTime: start.toISOString() },
+                end: { dateTime: end.toISOString() },
+            },
+        }
+    );
 }

@@ -55,6 +55,7 @@ type mpvUtils = {
     getcwd(): string;
     getpid(): any;
     get_user_path(path: string): string;
+    join_path(path1: string, path2: string): string;
 
     /**
      * Returns the content of file fname as string
