@@ -1,0 +1,31 @@
+{
+    "include": ["**/*.js", "**/*.ts", "**/*.tsx", "**/*.jsx"],
+    "exclude": ["node_modules", ".vscode"],
+    "compilerOptions": {
+        "target": "ES5",
+        "moduleResolution": "Node",
+        "jsx": "react-jsx",
+
+        "esModuleInterop": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "allowUnreachableCode": false,
+        "exactOptionalPropertyTypes": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+
+        /* Super Strict set of props */
+        "strict": true,
+        "strictFunctionTypes": true,
+        "strictBindCallApply": true,
+        "strictPropertyInitialization": true,
+        "useUnknownInCatchVariables": true,
+        "alwaysStrict": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        "noPropertyAccessFromIndexSignature": true
+    }
+}
