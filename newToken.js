@@ -1,84 +1,122 @@
-// mp.enable_messages("error");
-// mp.osd_message("Script Starting....", 10);
-
-var CLIENT_ID = "";
-var CLIENT_SECRET = "";
-var CALENDAR_ID = "";
-var TOKEN = "";
+const fs = require("fs/promises");
+const path = require("path");
+const { spawn } = require("child_process");
+const http = require("http");
 
 /* ======================== *\
-    #Pause/Play Event
+    # Init
 \* ======================== */
 
-// var FIVE_MINUTES = 300000;
-var FIVE_MINUTES = 1;
+(async function () {
+    const file = await fs.readFile(
+        path.join(__dirname, "data/credentials.json"),
+        {
+            encoding: "utf-8",
+        }
+    );
 
-var timer = null;
-var startTime = new Date();
-var endTime = new Date();
-mp.observe_property("pause", "bool", function (name, isPaused) {
-    clearTimeout(timer);
-    if (!isPaused) {
-        // Play
-        if (startTime === null) startTime = new Date();
-    } else {
-        // Pause
-        endTime = new Date();
+    const { client_id, client_secret, calendar_id } = JSON.parse(file);
+    const token_info = await authorize(client_id, client_secret);
+    console.log(token_info);
+    fs.writeFile(
+        path.join(__dirname, "data/token.json"),
+        JSON.stringify(token_info)
+    );
+})();
 
-        // if create a new Calendar event if Paused for some time
-        timer = setTimeout(endTimer, FIVE_MINUTES);
-    }
-});
-mp.register_event("shutdown", endTimer);
+/* ======================== *\
+    #Get Authorization Token
+\* ======================== */
 
-function endTimer() {
-    mp.osd_message("Saving calendar event", 1);
+async function authorize(client_id, client_secret) {
+    const PORT = 5173;
+    const REDIRECT = `http://localhost:${PORT}`;
 
-    // send Google Calendar Request
-    // createCalendarEvent(
-    //     TOKEN,
-    //     CALENDAR_ID,
-    //     "Spanish Anime",
-    //     startTime,
-    //     endTime
-    // );
+    // Open the default browser to google Authorizatoin screen
+    // NOTE: 'start' comand only works for windows [DC]
+    openBrowerOnWindows(getAuthorizationEndpoint(client_id, REDIRECT));
 
-    // Reset timers
-    startTime = null;
-    endTime = null;
+    // Wait for user to finish consent form
+    const code = await waitForAuthorizationCode(PORT);
+
+    // use the code that you get off the redirect to request the access_token
+    const credentials = await exchangeCode(
+        client_id,
+        client_secret,
+        REDIRECT,
+        code
+    );
+
+    // return the token
+    return credentials;
 }
 
-/* ======================== *\
-    #Calendar API Calls
-\* ======================== */
-
-function createCalendarEvent(accessToken, calendarID, summary, start, end) {
-    var body = JSON.stringify({
-        summary: summary,
-        start: { dateTime: start.toISOString() },
-        end: { dateTime: end.toISOString() },
-    });
-    var endpoint =
-        "https://www.googleapis.com/calendar/v3/calendars/" +
-        calendarID +
-        "/events";
-    var args = [
-        "curl",
-        "-X",
-        "POST",
-        "--location",
-        endpoint,
-        "--header",
-        "Content-Type: text/plain",
-        "--header",
-        "Authorization: Bearer " + accessToken,
-        "--data",
-        body,
+function getAuthorizationEndpoint(client_id, redirect_uri) {
+    const scopes = [
+        "https://www.googleapis.com/auth/calendar.readonly",
+        "https://www.googleapis.com/auth/calendar.app.created",
+        "https://www.googleapis.com/auth/calendar.events.owned",
     ];
-    mp.command_native({
-        name: "subprocess",
-        playback_only: false,
-        capture_stdout: true,
-        args: args,
+
+    const params = {
+        scope: scopes.join(" "),
+        response_type: "code",
+        access_type: "offline",
+        redirect_uri,
+        client_id,
+    };
+
+    const endpoint =
+        "https://accounts.google.com/o/oauth2/v2/auth?" +
+        Object.entries(params)
+            .map(([key, value]) => `${key}=${value}`)
+            .join("&");
+
+    return endpoint;
+}
+
+function openBrowerOnWindows(url) {
+    const powershell = `${
+        process.env.SYSTEMROOT || process.env.windir || "C:\\Windows"
+    }\\System32\\WindowsPowerShell\\v1.0\\powershell`;
+    spawn(powershell, ["Start", `"${url}"`]);
+}
+
+async function waitForAuthorizationCode(port) {
+    return new Promise(function (resolve, reject) {
+        // Create a local server to receive 'code' from google
+        const server = http.createServer((req, res) => {
+            // Send back a nice message
+            res.statusCode = 200;
+            res.end("Google Authorization completed :)");
+
+            // Terminate the server
+            server.close().closeAllConnections();
+
+            // Parse & return the 'code'
+            const url = new URL(req.url, `http://localhost:${port}`);
+            resolve(url.searchParams.get("code"));
+        });
+        server.listen(port);
     });
+}
+
+async function exchangeCode(client_id, client_secret, redirect_uri, code) {
+    const params = {
+        client_id,
+        client_secret,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri,
+    };
+
+    const endpoint =
+        "https://oauth2.googleapis.com/token?" +
+        Object.entries(params)
+            .map(([key, value]) => `${key}=${value}`)
+            .join("&");
+
+    const res = await fetch(endpoint, { method: "POST" });
+    const credentials = await res.json();
+    return credentials;
 }
