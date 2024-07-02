@@ -29,7 +29,9 @@ declare const mp: {
     register_event(name: string, fn: Function): void;
     unregister_event(fn: Function): void;
 
-    command_native(table: Record<string, any>, def?: any): void;
+    command(str: string): true | null;
+    commandv(...args: string[]): void;
+    command_native(table: Record<string, any>, def?: any): Record<string, any>;
     command_native_async(
         table: Record<string, any>,
         fn?: (

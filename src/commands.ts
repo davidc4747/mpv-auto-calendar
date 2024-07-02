@@ -7,7 +7,14 @@ type HttpOptions = {
     headers?: Record<string, any>;
 };
 
-export function curl(endpoint: string, options?: HttpOptions): void {
+type CommandOutput = {
+    error_string: string;
+    killed_by_us: boolean;
+    status: number;
+    stdout: string;
+};
+
+export function curl(endpoint: string, options?: HttpOptions): string {
     let args = ["curl", "-X", options?.method ?? "GET", "--location", endpoint];
     if (options?.headers) {
         for (const key in options.headers) {
@@ -20,10 +27,12 @@ export function curl(endpoint: string, options?: HttpOptions): void {
     if (options?.body) {
         args = args.concat(["--data", JSON.stringify(options.body)]);
     }
-    mp.command_native({
+    const output = mp.command_native({
         name: "subprocess",
         playback_only: false,
         capture_stdout: true,
         args: args,
-    });
+    }) as CommandOutput;
+
+    return output.stdout;
 }

@@ -60,6 +60,9 @@ type TokenFile = {
     expires_in: number;
     refresh_token: string;
     scope: string;
+
+    // There are other types here, i just don't any of them.
+    //      this is coming from google [DC]
     token_type: "Bearer";
 };
 
@@ -106,14 +109,43 @@ function readCredentialsFile(): CredentialsFile {
     #Calendar API Calls
 \* ======================== */
 
+type CreateEventResponse = {
+    created: string; // "2024-07-02T00:35:44.000Z";
+    creator: { email: string };
+    end: {
+        dateTime: string; // "2024-07-02T00:35:45Z";
+        timeZone: string; // "America/Los_Angeles";
+    };
+    etag: string; // '"3439761088710000"';
+    eventType: string; // "default";
+    htmlLink: string;
+    iCalUID: string;
+    id: string;
+    kind: string; // "calendar#event";
+    organizer: {
+        displayName: string; // "TimeWise";
+        email: string;
+        self: boolean;
+    };
+    reminders: { useDefault: boolean };
+    sequence: number;
+    start: {
+        dateTime: string; // "2024-07-02T00:35:43Z";
+        timeZone: string; // "America/Los_Angeles";
+    };
+    status: "confirmed";
+    summary: string; // "Spanish Anime";
+    updated: string; // "2024-07-02T00:35:44.355Z";
+};
+
 function createCalendarEvent(
     accessToken: string,
     calendarID: string,
     summary: string,
     start: Date,
     end: Date
-) {
-    curl(
+): CreateEventResponse {
+    const stdout = curl(
         "https://www.googleapis.com/calendar/v3/calendars/" +
             calendarID +
             "/events",
@@ -130,4 +162,5 @@ function createCalendarEvent(
             },
         }
     );
+    return JSON.parse(stdout) as CreateEventResponse;
 }
