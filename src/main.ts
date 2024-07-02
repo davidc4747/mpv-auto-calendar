@@ -6,7 +6,7 @@ import {
     TokenFile,
 } from "./files";
 import { getFreshAccessToken } from "./google/token";
-import { createCalendarEvent } from "./google/events";
+import { createCalendarEvent, EventColorID } from "./google/events";
 
 /* ======================== *\
     #Handle refreshing token
@@ -72,13 +72,14 @@ mp.register_event("shutdown", function () {
 function endTimer(accessToken: string, calendarID: string) {
     // send Google Calendar Request
     if (startTime && endTime) {
-        createCalendarEvent(
+        createCalendarEvent({
             accessToken,
             calendarID,
-            "Spanish Anime",
-            startTime,
-            endTime
-        );
+            summary: "Spanish Anime",
+            start: startTime,
+            end: endTime,
+            colorId: EventColorID.TOMATO,
+        });
         mp.osd_message("Saving calendar event", 1);
     }
 

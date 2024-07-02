@@ -1,5 +1,29 @@
 import { curl } from "../commands";
 
+// https://google-calendar-simple-api.readthedocs.io/en/latest/colors.html
+export enum EventColorID {
+    LAVENDER = 1,
+    SAGE = 2,
+    GRAPE = 3,
+    FLAMINGO = 4,
+    BANANA = 5,
+    TANGERINE = 6,
+    PEACOCK = 7,
+    GRAPHITE = 8,
+    BLUEBERRY = 9,
+    BASIL = 10,
+    TOMATO = 11,
+}
+
+type CreateEventRequest = {
+    accessToken: string;
+    calendarID: string;
+    summary: string;
+    start: Date;
+    end: Date;
+    colorId?: number;
+};
+
 type CreateEventResponse = {
     created: string; // "2024-07-02T00:35:44.000Z";
     creator: { email: string };
@@ -30,12 +54,9 @@ type CreateEventResponse = {
 };
 
 export function createCalendarEvent(
-    accessToken: string,
-    calendarID: string,
-    summary: string,
-    start: Date,
-    end: Date
+    params: CreateEventRequest
 ): CreateEventResponse {
+    const { accessToken, calendarID, summary, start, end } = params;
     const stdout = curl(
         "https://www.googleapis.com/calendar/v3/calendars/" +
             calendarID +
@@ -50,6 +71,7 @@ export function createCalendarEvent(
                 summary: summary,
                 start: { dateTime: start.toISOString() },
                 end: { dateTime: end.toISOString() },
+                colorId: params.colorId,
             },
         }
     );
