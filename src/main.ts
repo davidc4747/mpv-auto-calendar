@@ -5,9 +5,10 @@ import {
     saveToken,
     TokenFile,
 } from "./files";
+import { getUserConfig, UserConfig } from "./config";
 import { getFreshAccessToken } from "./google/token";
-import { createCalendarEvent, EventColorID } from "./google/events";
 import { createCalendar, getCalendarInfoByName } from "./google/calendars";
+import { createCalendarEvent } from "./google/events";
 
 /* ======================== *\
     #Handle refreshing token
@@ -39,8 +40,11 @@ let refreshTimer;
     #Handle Pause/Play 
 \* ======================== */
 
-const FIVE_MINUTES = 300000;
-// const FIVE_MINUTES = 1;
+const config = getUserConfig();
+// create calendar if not exists
+if (!getCalendarInfoByName(accessToken, config.calendar_name)) {
+    createCalendar(accessToken, config.calendar_name);
+}
 
 let timer: number;
 let startTime: Date | null = new Date();
@@ -58,34 +62,30 @@ mp.observe_property(
             endTime = new Date();
 
             // if create a new Calendar event if Paused for some time
-            timer = setTimeout(() => endTimer(accessToken), FIVE_MINUTES);
+            timer = setTimeout(
+                () => endTimer(accessToken, config),
+                config.wait_time * 1000
+            );
         }
     }
 );
 mp.register_event("shutdown", function () {
-    endTimer(accessToken);
+    endTimer(accessToken, config);
 });
 
-function endTimer(accessToken: string) {
+function endTimer(token: string, config: UserConfig): void {
     // send Google Calendar Request
     if (startTime && endTime) {
-        const CALENDAR_NAME = "TimeWise";
-
-        // look for the calendarId
-        let calendarId = getCalendarInfoByName(accessToken, CALENDAR_NAME)?.id;
-
-        // create calendar if not exists
-        if (!calendarId) {
-            calendarId = createCalendar(accessToken, CALENDAR_NAME).id;
-        }
+        const { calendar_name, event_color_id, event_name } = config;
 
         // log calendar event
+        const calendarId = getCalendarInfoByName(token, calendar_name)?.id;
         if (calendarId) {
-            createCalendarEvent(accessToken, calendarId, {
-                summary: "Spanish Anime",
+            createCalendarEvent(token, calendarId, {
+                summary: event_name,
                 start: { dateTime: startTime.toISOString() },
                 end: { dateTime: endTime.toISOString() },
-                colorId: EventColorID.TOMATO,
+                colorId: event_color_id,
             });
             mp.osd_message("Saving calendar event", 1);
         }

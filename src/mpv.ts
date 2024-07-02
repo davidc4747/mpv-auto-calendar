@@ -3,8 +3,9 @@ declare const dump: (val: any) => void;
 declare const exit: () => void;
 
 declare const mp: {
-    get_script_file(): string;
-    get_script_directory(): string;
+    get_script_name(): string; // auto_calendar
+    get_script_directory(): string; // C:/Users/{USERNAME}/AppData/Roaming/mpv/scripts/auto-calendar
+    get_script_file(): string; // C:/Users/{USERNAME}/AppData/Roaming/mpv/scripts/auto-calendar/main.js
 
     osd_message(text: string, duration?: number): void;
     enable_messages(level: string): void;
@@ -44,7 +45,13 @@ declare const mp: {
     utils: mpvUtils;
     msg: any;
     input: any;
-    options: any;
+    options: {
+        read_options(
+            defaultConfig: Record<string, any>,
+            identifier?: string,
+            on_update?: (list: string[]) => void
+        ): Record<string, any>;
+    };
 };
 
 type mpvType = "none" | "native" | "bool" | "string" | "number";
