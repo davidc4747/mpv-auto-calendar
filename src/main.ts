@@ -1,8 +1,15 @@
-import { curl } from "./commands";
 import "./mpv";
+import {
+    readCredentialsFile,
+    readTokenFile,
+    saveToken,
+    TokenFile,
+} from "./files";
+import { getFreshAccessToken } from "./google/token";
+import { createCalendarEvent } from "./google/events";
 
 /* ======================== *\
-    # refresh
+    #Handle refreshing token
 \* ======================== */
 
 let accessToken: string, calendarID: string;
@@ -29,7 +36,7 @@ let refreshTimer;
 })();
 
 /* ======================== *\
-    #Pause/Play Event
+    #Handle Pause/Play 
 \* ======================== */
 
 const FIVE_MINUTES = 300000;
@@ -78,138 +85,4 @@ function endTimer(accessToken: string, calendarID: string) {
     // Reset timers
     startTime = null;
     endTime = null;
-}
-
-/* ======================== *\
-    #Refresh Token
-\* ======================== */
-
-type TokenFile = {
-    access_token: string;
-    expires_in: number;
-    refresh_token: string;
-    scope: string;
-
-    // There are other types here, i just don't any of them.
-    //      this is coming from google [DC]
-    token_type: "Bearer";
-};
-
-function readTokenFile(): TokenFile {
-    const dirname = mp.get_script_directory();
-    const filename = mp.utils.join_path(dirname, "data/token.json");
-    const text = mp.utils.read_file(filename);
-    return JSON.parse(text) as TokenFile;
-}
-
-function saveToken(tokenInfo: TokenFile): void {
-    const dirname = mp.get_script_directory();
-    const filename = mp.utils.join_path(dirname, "data/token.json");
-    writeFile(filename, JSON.stringify(tokenInfo));
-}
-
-function getFreshAccessToken(
-    client_id: string,
-    client_secret: string,
-    refresh_token: string
-): TokenFile {
-    // const params = {
-    //     client_id,
-    //     client_secret,
-    //     grant_type: "refresh_token",
-    //     refresh_token,
-    // };
-
-    const endpoint = `https://oauth2.googleapis.com/token?client_id=${client_id}&client_secret=${client_secret}&refresh_token=${refresh_token}&grant_type=refresh_token`;
-    const stdout = curl(endpoint, { method: "POST" });
-
-    const credentials = JSON.parse(stdout);
-    credentials["refresh_token"] = refresh_token;
-    return credentials as TokenFile;
-}
-
-type CredentialsFile = {
-    client_id: string;
-    client_secret: string;
-    calendar_id: string;
-};
-
-function readCredentialsFile(): CredentialsFile {
-    const dirname = mp.get_script_directory();
-    const filename = mp.utils.join_path(dirname, "data/credentials.json");
-    const text = mp.utils.read_file(filename);
-    return JSON.parse(text) as CredentialsFile;
-}
-
-/* ======================== *\
-    #Helpers
-\* ======================== */
-
-function normalizePath(path: string): string {
-    // NOTE: realistically you're suppose to do Some OS checks in here [DC]
-    return path.replace("\\", "/");
-}
-
-function writeFile(filename: string, content: string): void {
-    mp.utils.write_file("file://" + normalizePath(filename), content);
-}
-
-/* ======================== *\
-    #Calendar API Calls
-\* ======================== */
-
-type CreateEventResponse = {
-    created: string; // "2024-07-02T00:35:44.000Z";
-    creator: { email: string };
-    end: {
-        dateTime: string; // "2024-07-02T00:35:45Z";
-        timeZone: string; // "America/Los_Angeles";
-    };
-    etag: string; // '"3439761088710000"';
-    eventType: string; // "default";
-    htmlLink: string;
-    iCalUID: string;
-    id: string;
-    kind: string; // "calendar#event";
-    organizer: {
-        displayName: string; // "TimeWise";
-        email: string;
-        self: boolean;
-    };
-    reminders: { useDefault: boolean };
-    sequence: number;
-    start: {
-        dateTime: string; // "2024-07-02T00:35:43Z";
-        timeZone: string; // "America/Los_Angeles";
-    };
-    status: "confirmed";
-    summary: string; // "Spanish Anime";
-    updated: string; // "2024-07-02T00:35:44.355Z";
-};
-
-function createCalendarEvent(
-    accessToken: string,
-    calendarID: string,
-    summary: string,
-    start: Date,
-    end: Date
-): CreateEventResponse {
-    const stdout = curl(
-        "https://www.googleapis.com/calendar/v3/calendars/" +
-            calendarID +
-            "/events",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "text/plain",
-                Authorization: `Bearer ${accessToken}`,
-            },
-            body: {
-                summary: summary,
-                start: { dateTime: start.toISOString() },
-                end: { dateTime: end.toISOString() },
-            },
-        }
-    );
-    return JSON.parse(stdout) as CreateEventResponse;
 }
