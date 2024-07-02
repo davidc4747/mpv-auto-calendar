@@ -17,6 +17,7 @@ const http = require("http");
 
     const { client_id, client_secret, calendar_id } = JSON.parse(file);
     const token_info = await authorize(client_id, client_secret);
+    console.log("\n");
     console.log(token_info);
     fs.writeFile(
         path.join(__dirname, "data/token.json"),
@@ -34,7 +35,9 @@ async function authorize(client_id, client_secret) {
 
     // Open the default browser to google Authorizatoin screen
     // NOTE: 'start' comand only works for windows [DC]
-    openBrowerOnWindows(getAuthorizationEndpoint(client_id, REDIRECT));
+    const endpoint = getAuthorizationEndpoint(client_id, REDIRECT);
+    console.log(endpoint);
+    openBrowerOnWindows(endpoint);
 
     // Wait for user to finish consent form
     const code = await waitForAuthorizationCode(PORT);
@@ -53,9 +56,9 @@ async function authorize(client_id, client_secret) {
 
 function getAuthorizationEndpoint(client_id, redirect_uri) {
     const scopes = [
-        "https://www.googleapis.com/auth/calendar.readonly",
-        "https://www.googleapis.com/auth/calendar.app.created",
-        "https://www.googleapis.com/auth/calendar.events.owned",
+        "https://www.googleapis.com/auth/calendar",
+        // "https://www.googleapis.com/auth/calendar.app.created",
+        // "https://www.googleapis.com/auth/calendar.events.owned",
     ];
 
     const params = {
