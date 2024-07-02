@@ -15,7 +15,6 @@ import { createCalendarEvent } from "./google/events";
 \* ======================== */
 
 let accessToken: string;
-
 let refreshTimer;
 (function tick() {
     const { client_id, client_secret } = readCredentialsFile();

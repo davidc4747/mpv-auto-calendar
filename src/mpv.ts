@@ -9,6 +9,7 @@ declare const mp: {
 
     osd_message(text: string, duration?: number): void;
     enable_messages(level: string): void;
+    last_error(): any;
 
     /**
      * List of all Properties can be found here

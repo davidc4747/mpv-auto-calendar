@@ -39,7 +39,7 @@ type CredentialsFile = {
 
 export function readCredentialsFile(): CredentialsFile {
     const dirname = mp.get_script_directory();
-    const filename = mp.utils.join_path(dirname, "data/credentials.json");
+    const filename = mp.utils.join_path(dirname, "credentials.json");
     const text = mp.utils.read_file(filename);
     return JSON.parse(text) as CredentialsFile;
 }

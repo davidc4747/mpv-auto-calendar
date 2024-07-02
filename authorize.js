@@ -8,17 +8,15 @@ const http = require("http");
 \* ======================== */
 
 (async function () {
-    const file = await fs.readFile(
-        path.join(__dirname, "data/credentials.json"),
-        {
-            encoding: "utf-8",
-        }
-    );
+    const file = await fs.readFile(path.join(__dirname, "credentials.json"), {
+        encoding: "utf-8",
+    });
 
     const { client_id, client_secret, calendar_id } = JSON.parse(file);
     const token_info = await authorize(client_id, client_secret);
     console.log("\n");
     console.log(token_info);
+    await fs.mkdir("data", { recursive: true });
     fs.writeFile(
         path.join(__dirname, "data/token.json"),
         JSON.stringify(token_info)
