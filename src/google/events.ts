@@ -1,6 +1,6 @@
 import { curl } from "../commands";
 
-// https://google-calendar-simple-api.readthedocs.io/en/latest/colors.html
+// https://google-calendar-simple-api.readthedocs.io/en/latest/colors.html#event-colors
 export enum EventColorID {
     LAVENDER = 1,
     SAGE = 2,
@@ -15,21 +15,13 @@ export enum EventColorID {
     TOMATO = 11,
 }
 
-type CreateEventRequest = {
-    accessToken: string;
-    calendarId: string;
-    summary: string;
-    start: Date;
-    end: Date;
-    colorId?: number;
-};
-
-type CreateEventResponse = {
+// https://developers.google.com/calendar/api/v3/reference/events#resource
+type Event = {
     created: string; // "2024-07-02T00:35:44.000Z";
     creator: { email: string };
     end: {
         dateTime: string; // "2024-07-02T00:35:45Z";
-        timeZone: string; // "America/Los_Angeles";
+        timeZone?: string; // "America/Los_Angeles";
     };
     etag: string; // '"3439761088710000"';
     eventType:
@@ -41,6 +33,7 @@ type CreateEventResponse = {
     htmlLink: string;
     iCalUID: string;
     id: string;
+    colorId: EventColorID;
     kind: string; // "calendar#event";
     organizer: {
         displayName: string; // "TimeWise";
@@ -51,7 +44,7 @@ type CreateEventResponse = {
     sequence: number;
     start: {
         dateTime: string; // "2024-07-02T00:35:43Z";
-        timeZone: string; // "America/Los_Angeles";
+        timeZone?: string; // "America/Los_Angeles";
     };
     status: "confirmed";
     summary: string; // "Spanish Anime";
@@ -59,9 +52,10 @@ type CreateEventResponse = {
 };
 
 export function createCalendarEvent(
-    params: CreateEventRequest
-): CreateEventResponse {
-    const { accessToken, calendarId, summary, start, end } = params;
+    token: string,
+    calendarId: string,
+    body: Partial<Event>
+): Event {
     const stdout = curl(
         "https://www.googleapis.com/calendar/v3/calendars/" +
             calendarId +
@@ -70,15 +64,10 @@ export function createCalendarEvent(
             method: "POST",
             headers: {
                 "Content-Type": "text/plain",
-                Authorization: `Bearer ${accessToken}`,
+                Authorization: `Bearer ${token}`,
             },
-            body: {
-                summary: summary,
-                start: { dateTime: start.toISOString() },
-                end: { dateTime: end.toISOString() },
-                colorId: params.colorId,
-            },
+            body,
         }
     );
-    return JSON.parse(stdout) as CreateEventResponse;
+    return JSON.parse(stdout) as Event;
 }

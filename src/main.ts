@@ -81,12 +81,10 @@ function endTimer(accessToken: string) {
 
         // log calendar event
         if (calendarId) {
-            createCalendarEvent({
-                accessToken,
-                calendarId,
+            createCalendarEvent(accessToken, calendarId, {
                 summary: "Spanish Anime",
-                start: startTime,
-                end: endTime,
+                start: { dateTime: startTime.toISOString() },
+                end: { dateTime: endTime.toISOString() },
                 colorId: EventColorID.TOMATO,
             });
             mp.osd_message("Saving calendar event", 1);
