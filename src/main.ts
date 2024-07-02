@@ -2,11 +2,38 @@ import { curl } from "./commands";
 import "./mpv";
 
 /* ======================== *\
+    # refresh
+\* ======================== */
+
+let accessToken: string, calendarID: string;
+
+let refreshTimer;
+(function tick() {
+    const { client_id, client_secret, calendar_id } = readCredentialsFile();
+    const { refresh_token } = readTokenFile();
+
+    // ping google for a new token
+    const credentials = getFreshAccessToken(
+        client_id,
+        client_secret,
+        refresh_token
+    );
+
+    // Update Global Variables
+    accessToken = credentials.access_token;
+    calendarID = calendar_id;
+
+    // Save the new access_token to File
+    saveToken(credentials as TokenFile);
+    refreshTimer = setTimeout(tick, credentials.expires_in * 1000);
+})();
+
+/* ======================== *\
     #Pause/Play Event
 \* ======================== */
 
-// const FIVE_MINUTES = 300000;
-const FIVE_MINUTES = 1;
+const FIVE_MINUTES = 300000;
+// const FIVE_MINUTES = 1;
 
 let timer: number;
 let startTime: Date | null = new Date();
@@ -24,21 +51,23 @@ mp.observe_property(
             endTime = new Date();
 
             // if create a new Calendar event if Paused for some time
-            timer = setTimeout(endTimer, FIVE_MINUTES);
+            timer = setTimeout(
+                () => endTimer(accessToken, calendarID),
+                FIVE_MINUTES
+            );
         }
     }
 );
-mp.register_event("shutdown", endTimer);
+mp.register_event("shutdown", function () {
+    endTimer(accessToken, calendarID);
+});
 
-function endTimer() {
+function endTimer(accessToken: string, calendarID: string) {
     // send Google Calendar Request
     if (startTime && endTime) {
-        const { calendar_id } = readCredentialsFile();
-        const { access_token, refresh_token } = readTokenFile();
-
         createCalendarEvent(
-            access_token,
-            calendar_id,
+            accessToken,
+            calendarID,
             "Spanish Anime",
             startTime,
             endTime
@@ -73,6 +102,32 @@ function readTokenFile(): TokenFile {
     return JSON.parse(text) as TokenFile;
 }
 
+function saveToken(tokenInfo: TokenFile): void {
+    const dirname = mp.get_script_directory();
+    const filename = mp.utils.join_path(dirname, "data/token.json");
+    writeFile(filename, JSON.stringify(tokenInfo));
+}
+
+function getFreshAccessToken(
+    client_id: string,
+    client_secret: string,
+    refresh_token: string
+): TokenFile {
+    // const params = {
+    //     client_id,
+    //     client_secret,
+    //     grant_type: "refresh_token",
+    //     refresh_token,
+    // };
+
+    const endpoint = `https://oauth2.googleapis.com/token?client_id=${client_id}&client_secret=${client_secret}&refresh_token=${refresh_token}&grant_type=refresh_token`;
+    const stdout = curl(endpoint, { method: "POST" });
+
+    const credentials = JSON.parse(stdout);
+    credentials["refresh_token"] = refresh_token;
+    return credentials as TokenFile;
+}
+
 type CredentialsFile = {
     client_id: string;
     client_secret: string;
@@ -86,24 +141,18 @@ function readCredentialsFile(): CredentialsFile {
     return JSON.parse(text) as CredentialsFile;
 }
 
-// async function refreshToken(refresh_token) {
-//     const params = {
-//         client_id: CLIENT_ID,
-//         client_secret: CLIENT_SECRET,
-//         grant_type: "refresh_token",
-//         refresh_token,
-//     };
+/* ======================== *\
+    #Helpers
+\* ======================== */
 
-//     const endpoint =
-//         "https://oauth2.googleapis.com/token?" +
-//         Object.entries(params)
-//             .map(([key, value]) => `${key}=${value}`)
-//             .join("&");
+function normalizePath(path: string): string {
+    // NOTE: realistically you're suppose to do Some OS checks in here [DC]
+    return path.replace("\\", "/");
+}
 
-//     const res = await fetch(endpoint, { method: "POST" });
-//     const credentials = await res.json();
-//     return credentials;
-// }
+function writeFile(filename: string, content: string): void {
+    mp.utils.write_file("file://" + normalizePath(filename), content);
+}
 
 /* ======================== *\
     #Calendar API Calls

@@ -15,7 +15,13 @@ type CommandOutput = {
 };
 
 export function curl(endpoint: string, options?: HttpOptions): string {
-    let args = ["curl", "-X", options?.method ?? "GET", "--location", endpoint];
+    let args = [
+        "curl",
+        "--location",
+        "--request",
+        options?.method ?? "GET",
+        endpoint,
+    ];
     if (options?.headers) {
         for (const key in options.headers) {
             if (options.headers.hasOwnProperty(key)) {
@@ -24,9 +30,7 @@ export function curl(endpoint: string, options?: HttpOptions): string {
             }
         }
     }
-    if (options?.body) {
-        args = args.concat(["--data", JSON.stringify(options.body)]);
-    }
+    args = args.concat(["--data", JSON.stringify(options?.body) ?? ""]);
     const output = mp.command_native({
         name: "subprocess",
         playback_only: false,
@@ -34,5 +38,10 @@ export function curl(endpoint: string, options?: HttpOptions): string {
         args: args,
     }) as CommandOutput;
 
-    return output.stdout;
+    // return output;
+    if (output.status === 0) {
+        return output.stdout;
+    } else {
+        return output.error_string;
+    }
 }

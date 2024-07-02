@@ -61,11 +61,11 @@ type mpvUtils = {
 
     /**
      * Returns the content of file fname as string
-     * @param fname - filename
+     * @param fname - fname must be prefixed with file:// as simple protection against accidental arguments switch
      * @param max - limit the read to max bytes
      */
     read_file(fname: string, max?: number): string;
 
-    write_file(fname: string, str: string): void;
-    append_file(fname: string, str: string): void;
+    write_file(fname: string, content: string): void;
+    append_file(fname: string, content: string): void;
 };
