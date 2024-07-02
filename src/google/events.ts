@@ -17,7 +17,7 @@ export enum EventColorID {
 
 type CreateEventRequest = {
     accessToken: string;
-    calendarID: string;
+    calendarId: string;
     summary: string;
     start: Date;
     end: Date;
@@ -32,7 +32,12 @@ type CreateEventResponse = {
         timeZone: string; // "America/Los_Angeles";
     };
     etag: string; // '"3439761088710000"';
-    eventType: string; // "default";
+    eventType:
+        | "default"
+        | "outOfOffice"
+        | "focusTime"
+        | "workingLocation"
+        | "fromGmail";
     htmlLink: string;
     iCalUID: string;
     id: string;
@@ -56,10 +61,10 @@ type CreateEventResponse = {
 export function createCalendarEvent(
     params: CreateEventRequest
 ): CreateEventResponse {
-    const { accessToken, calendarID, summary, start, end } = params;
+    const { accessToken, calendarId, summary, start, end } = params;
     const stdout = curl(
         "https://www.googleapis.com/calendar/v3/calendars/" +
-            calendarID +
+            calendarId +
             "/events",
         {
             method: "POST",

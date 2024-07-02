@@ -35,7 +35,6 @@ export function saveToken(tokenInfo: TokenFile): void {
 type CredentialsFile = {
     client_id: string;
     client_secret: string;
-    calendar_id: string;
 };
 
 export function readCredentialsFile(): CredentialsFile {

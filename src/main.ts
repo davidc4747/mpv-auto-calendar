@@ -7,16 +7,17 @@ import {
 } from "./files";
 import { getFreshAccessToken } from "./google/token";
 import { createCalendarEvent, EventColorID } from "./google/events";
+import { createCalendar, getCalendarInfoByName } from "./google/calendars";
 
 /* ======================== *\
     #Handle refreshing token
 \* ======================== */
 
-let accessToken: string, calendarID: string;
+let accessToken: string;
 
 let refreshTimer;
 (function tick() {
-    const { client_id, client_secret, calendar_id } = readCredentialsFile();
+    const { client_id, client_secret } = readCredentialsFile();
     const { refresh_token } = readTokenFile();
 
     // ping google for a new token
@@ -28,7 +29,6 @@ let refreshTimer;
 
     // Update Global Variables
     accessToken = credentials.access_token;
-    calendarID = calendar_id;
 
     // Save the new access_token to File
     saveToken(credentials as TokenFile);
@@ -58,29 +58,39 @@ mp.observe_property(
             endTime = new Date();
 
             // if create a new Calendar event if Paused for some time
-            timer = setTimeout(
-                () => endTimer(accessToken, calendarID),
-                FIVE_MINUTES
-            );
+            timer = setTimeout(() => endTimer(accessToken), FIVE_MINUTES);
         }
     }
 );
 mp.register_event("shutdown", function () {
-    endTimer(accessToken, calendarID);
+    endTimer(accessToken);
 });
 
-function endTimer(accessToken: string, calendarID: string) {
+function endTimer(accessToken: string) {
     // send Google Calendar Request
     if (startTime && endTime) {
-        createCalendarEvent({
-            accessToken,
-            calendarID,
-            summary: "Spanish Anime",
-            start: startTime,
-            end: endTime,
-            colorId: EventColorID.TOMATO,
-        });
-        mp.osd_message("Saving calendar event", 1);
+        const CALENDAR_NAME = "TimeWise";
+
+        // look for the calendarId
+        let calendarId = getCalendarInfoByName(accessToken, CALENDAR_NAME)?.id;
+
+        // create calendar if not exists
+        if (!calendarId) {
+            calendarId = createCalendar(accessToken, CALENDAR_NAME).id;
+        }
+
+        // log calendar event
+        if (calendarId) {
+            createCalendarEvent({
+                accessToken,
+                calendarId,
+                summary: "Spanish Anime",
+                start: startTime,
+                end: endTime,
+                colorId: EventColorID.TOMATO,
+            });
+            mp.osd_message("Saving calendar event", 1);
+        }
     }
 
     // Reset timers

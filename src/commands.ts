@@ -2,7 +2,7 @@ import "./mpv";
 
 type HttpMethods = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 type HttpOptions = {
-    method: HttpMethods;
+    method?: HttpMethods;
     body?: Record<string, any>;
     headers?: Record<string, any>;
 };
